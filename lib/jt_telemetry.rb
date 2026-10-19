@@ -3,6 +3,7 @@ require "json"
 require_relative "jt_telemetry/version"
 require_relative "jt_telemetry/config"
 require_relative "jt_telemetry/tags"
+require_relative "jt_telemetry/redactor"
 require_relative "jt_telemetry/helper"
 require_relative "jt_telemetry/railtie" if defined?(Rails::Railtie)
 

@@ -44,6 +44,27 @@ is set, so `assets:precompile` in a Docker build needs none of this ENV.
 Sentry also gets `environment` from `Rails.env`, `release` from
 `KAMAL_VERSION` (Kamal sets it in the container) and `send_default_pii = false`.
 
+## Secrets in paths
+
+`send_default_pii = false` does not keep a path out of Sentry: the request URL,
+the path in span data and, before a controller runs, the transaction name all
+carry it. An app whose paths hold a secret, such as a token, declares those
+paths in `config/application.rb`:
+
+```ruby
+config.jt_telemetry.redact_paths = ["/phone/:token"]
+```
+
+`before_send` and `before_send_transaction` then replace each `:segment` with
+its name, so `/phone/x0Rx...9nWS/bundle.pkpasses` reaches Sentry as
+`/phone/:token/bundle.pkpasses`. This covers the request URL, query string and
+headers (a `Referer` from such a page), the transaction name, span
+descriptions and data, breadcrumbs, exception messages, contexts, tags and
+extra. A segment ends at the next `/`, `?`, `#`, whitespace or quote.
+
+PostHog is not covered: a page with a secret in its path should not render
+`jt_telemetry_tags` at all.
+
 ## What the helper renders
 
 One inline `<script>`:
@@ -126,22 +147,36 @@ window.jtTrack("game_created", { players: 4 })
 ## Adding a new app
 
 1. Add the gem to the `Gemfile` (line above) and `bundle install`
-2. Set the ENV in `config/deploy.yml`. The DSN only allows sending events, it
-   does not need to be a secret:
+2. Create the Sentry project and store its DSN in the Keychain as
+   `myapp-sentry-dsn`:
+
+   ```sh
+   security add-generic-password -a "$USER" -s myapp-sentry-dsn -w
+   ```
+
+3. Set the ENV in `config/deploy.yml`. `SENTRY_DSN` is a secret, never in
+   `clear`:
 
    ```yaml
    env:
      clear:
        APP_NAME: myapp
-       SENTRY_DSN: https://...@....ingest.de.sentry.io/...
+     secret:
+       - SENTRY_DSN
    ```
 
-3. Call `<%= jt_telemetry_tags %>` in the layout's `<head>`
-4. If the app has a CSP, allow the hosts above
-5. Create the Sentry project and copy its DSN
-6. Add `https://myapp.joaotorr.es` to PostHog authorized URLs (Settings > Web
+   and read it from the Keychain in `.kamal/secrets`:
+
+   ```sh
+   SENTRY_DSN=$(security find-generic-password -w -s myapp-sentry-dsn)
+   ```
+
+4. Call `<%= jt_telemetry_tags %>` in the layout's `<head>`
+5. If the app has a CSP, allow the hosts above
+6. If any path holds a secret, declare it (Secrets in paths above)
+7. Add `https://myapp.joaotorr.es` to PostHog authorized URLs (Settings > Web
    analytics). No wildcards allowed
-7. Add an uptime monitor on `https://myapp.joaotorr.es/up`
+8. Add an uptime monitor on `https://myapp.joaotorr.es/up`
 
 ## Development
 

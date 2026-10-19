@@ -3,8 +3,14 @@ require "sentry-rails"
 
 module JtTelemetry
   class Railtie < Rails::Railtie
-    initializer "jt_telemetry.sentry" do
+    config.jt_telemetry = ActiveSupport::OrderedOptions.new
+    config.jt_telemetry.redact_paths = []
+
+    initializer "jt_telemetry.sentry" do |app|
       config = JtTelemetry.config
+      # Read on each event, so paths declared in a config/initializers file,
+      # which loads after this initializer, still apply.
+      redact = ->(event, hint) { Redactor.new(app.config.jt_telemetry.redact_paths).call(event, hint) }
       Rails.logger.warn(config.warning) if config.warning
       next unless config.sentry?
 
@@ -14,6 +20,8 @@ module JtTelemetry
         sentry.release = config.release if config.release
         sentry.send_default_pii = false
         sentry.traces_sampler = config.traces_sampler
+        sentry.before_send = redact
+        sentry.before_send_transaction = redact
       end
       Sentry.set_tags(app: config.app_name)
     end
