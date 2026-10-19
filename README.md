@@ -142,8 +142,11 @@ An API-only app that serves a built SPA (Done) has no layout to call the
 helper from. Insert the same tag into the HTML it serves:
 
 ```ruby
-Rails.public_path.join("index.html").read.sub("</head>", "#{JtTelemetry.tags}</head>")
+Rails.public_path.join("index.html").read.sub("</head>") { "#{JtTelemetry.tags}</head>" }
 ```
+
+Use the block form. As a replacement string, `sub` reads `\\` as an escape and
+halves every backslash in the tag, which breaks the redaction patterns.
 
 Pass `nonce:` if the app has a CSP. The tag is missing whenever the HTML does
 not come from Rails, such as the Vite dev server or an `index.html` the service
