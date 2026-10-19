@@ -8,13 +8,16 @@ module JtTelemetry
 
     # Turbo Drive can evaluate the head script again; the jtTrack check stops a
     # second init. Warns on names that are not snake_case object_action.
+    # { beacon: true } skips the batch queue and sends with sendBeacon, for an
+    # event fired right before the page navigates away.
     TRACK = <<~'JS'.strip
       if (window.jtTrack) return;
-      window.jtTrack = function (name, props) {
+      window.jtTrack = function (name, props, options) {
         if (!/^[a-z][a-z0-9]*(_[a-z0-9]+)+$/.test(name)) {
           console.warn("jtTrack: event names are snake_case object_action, e.g. game_created. Got: " + name);
         }
-        if (window.posthog) window.posthog.capture(name, props);
+        var capture = options && options.beacon ? { transport: "sendBeacon", send_instantly: true } : undefined;
+        if (window.posthog) window.posthog.capture(name, props, capture);
       };
     JS
 

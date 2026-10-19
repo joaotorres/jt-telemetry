@@ -42,7 +42,7 @@ RSpec.describe JtTelemetry::Helper do
     it "guards against a second init and defines jtTrack" do
       expect(html).to include("if (window.jtTrack) return;")
       expect(html.index("if (window.jtTrack) return;")).to be < html.index("posthog.init")
-      expect(html).to include("window.jtTrack = function (name, props)")
+      expect(html).to include("window.jtTrack = function (name, props, options)")
     end
   end
 

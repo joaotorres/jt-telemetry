@@ -69,7 +69,7 @@ PostHog is not covered: a page with a secret in its path should not render
 
 One inline `<script>`:
 
-- `window.jtTrack(name, props)`, always, so app code can call it in every
+- `window.jtTrack(name, props, options)`, always, so app code can call it in every
   environment. It forwards to `posthog.capture` and does nothing when PostHog
   is not loaded
 - the PostHog loader and `posthog.init`, only when telemetry is on, followed by
@@ -143,6 +143,28 @@ them by hand.
 ```js
 window.jtTrack("game_created", { players: 4 })
 ```
+
+### Events right before the page navigates away
+
+PostHog batches events and sends them every few seconds, so an event fired
+just before a navigation (a redirect to another site, `location.assign`) is
+lost with the page. Pass `{ beacon: true }` for those:
+
+```js
+window.jtTrack("pass_exported", { wallet: "google" }, { beacon: true })
+window.location.assign(saveUrl)
+```
+
+It calls `posthog.capture` with `{ transport: "sendBeacon", send_instantly:
+true }`, as https://posthog.com/docs/libraries/js/usage recommends: the event
+skips the queue and goes out through `navigator.sendBeacon`, which the browser
+finishes after the page is gone. In headless Chrome, firing then navigating at
+once sent the event with the option and sent nothing without it.
+
+It works through the proxy as is. A beacon is a `POST /e/` with an
+`application/x-www-form-urlencoded` body, a CORS simple request, so there is
+no preflight, and the browser does not need to read the response. Delivery is
+still up to the browser, so keep it for the events that need it.
 
 ## Adding a new app
 
