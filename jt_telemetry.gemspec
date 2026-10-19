@@ -5,7 +5,7 @@ Gem::Specification.new do |spec|
   spec.version = JtTelemetry::VERSION
   spec.authors = ["João Torres"]
   spec.summary = "Sentry and PostHog wiring shared by my Rails apps"
-  spec.homepage = "https://github.com/joaotorres/jt_telemetry"
+  spec.homepage = "https://github.com/joaotorres/jt-telemetry"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.3"
 

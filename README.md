@@ -10,7 +10,7 @@ Sentry and PostHog for my Rails apps, configured once.
 ## Install
 
 ```ruby
-gem "jt_telemetry", github: "joaotorres/jt_telemetry", branch: "main"
+gem "jt_telemetry", github: "joaotorres/jt-telemetry", branch: "main"
 ```
 
 Then call the helper once in the `<head>` of the layout, before
