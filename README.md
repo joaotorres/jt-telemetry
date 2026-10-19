@@ -30,13 +30,16 @@ All from ENV.
 
 | Variable                    | Default                   | Notes |
 | --------------------------- | ------------------------- | ----- |
-| `APP_NAME`                  | none                      | Required when telemetry is on, boot fails without it. PostHog `app` super property and Sentry `app` tag |
+| `APP_NAME`                  | none                      | Without it telemetry is off and the boot logs a warning. PostHog `app` super property and Sentry `app` tag |
 | `SENTRY_DSN`                | none                      | Sentry is not initialized without it |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.1`                     | `/up` is never traced |
 | `POSTHOG_KEY`               | the shared project key    | Public key |
 | `POSTHOG_HOST`              | `https://t.joaotorr.es`   | Reverse proxy |
 | `POSTHOG_UI_HOST`           | `https://eu.posthog.com`  | |
 | `TELEMETRY_ENABLED`         | `true` in production only | `true`/`1`/`yes` or anything else for off |
+
+The gem never stops a boot. Telemetry is always off when `SECRET_KEY_BASE_DUMMY`
+is set, so `assets:precompile` in a Docker build needs none of this ENV.
 
 Sentry also gets `environment` from `Rails.env`, `release` from
 `KAMAL_VERSION` (Kamal sets it in the container) and `send_default_pii = false`.

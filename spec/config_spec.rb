@@ -5,40 +5,59 @@ RSpec.describe JtTelemetry::Config do
     described_class.new(env:, rails_env:)
   end
 
+  let(:named) { { "APP_NAME" => "onset" } }
+
   describe "#enabled?" do
     it "defaults to on in production and off elsewhere" do
-      expect(config({}, rails_env: "production")).to be_enabled
-      expect(config({}, rails_env: "development")).not_to be_enabled
-      expect(config({}, rails_env: "test")).not_to be_enabled
+      expect(config(named, rails_env: "production")).to be_enabled
+      expect(config(named, rails_env: "development")).not_to be_enabled
+      expect(config(named, rails_env: "test")).not_to be_enabled
     end
 
     it "follows TELEMETRY_ENABLED when set" do
-      expect(config({ "TELEMETRY_ENABLED" => "false" }, rails_env: "production")).not_to be_enabled
-      expect(config({ "TELEMETRY_ENABLED" => "true" }, rails_env: "development")).to be_enabled
-      expect(config({ "TELEMETRY_ENABLED" => "1" }, rails_env: "development")).to be_enabled
+      expect(config(named.merge("TELEMETRY_ENABLED" => "false"), rails_env: "production")).not_to be_enabled
+      expect(config(named.merge("TELEMETRY_ENABLED" => "true"), rails_env: "development")).to be_enabled
+      expect(config(named.merge("TELEMETRY_ENABLED" => "1"), rails_env: "development")).to be_enabled
     end
 
     it "treats a blank TELEMETRY_ENABLED as unset" do
-      expect(config({ "TELEMETRY_ENABLED" => " " }, rails_env: "production")).to be_enabled
+      expect(config(named.merge("TELEMETRY_ENABLED" => " "), rails_env: "production")).to be_enabled
+    end
+
+    it "is off without APP_NAME, instead of stopping the boot" do
+      expect(config({}, rails_env: "production")).not_to be_enabled
+      expect(config({ "APP_NAME" => " " }, rails_env: "production")).not_to be_enabled
+    end
+
+    it "is off under SECRET_KEY_BASE_DUMMY, as in assets:precompile, whatever else is set" do
+      expect(config(named.merge("SECRET_KEY_BASE_DUMMY" => "1"), rails_env: "production")).not_to be_enabled
+      expect(config(named.merge("SECRET_KEY_BASE_DUMMY" => "1", "TELEMETRY_ENABLED" => "true"))).not_to be_enabled
     end
   end
 
-  describe "#validate!" do
-    it "requires APP_NAME when enabled" do
-      expect { config.validate! }.to raise_error(JtTelemetry::Error, /APP_NAME/)
-      expect { config({ "APP_NAME" => "onset" }).validate! }.not_to raise_error
+  describe "#warning" do
+    it "says telemetry is off when it was asked for without APP_NAME" do
+      expect(config({}, rails_env: "production").warning).to match(/APP_NAME is not set/)
+      expect(config({ "TELEMETRY_ENABLED" => "true" }, rails_env: "development").warning).to match(/APP_NAME/)
     end
 
-    it "does not require APP_NAME when disabled" do
-      expect { config({}, rails_env: "development").validate! }.not_to raise_error
+    it "is nil when telemetry runs, or was never asked for" do
+      expect(config(named).warning).to be_nil
+      expect(config({}, rails_env: "development").warning).to be_nil
+      expect(config({ "TELEMETRY_ENABLED" => "false" }).warning).to be_nil
+    end
+
+    it "is nil under SECRET_KEY_BASE_DUMMY, where telemetry is skipped on purpose" do
+      expect(config({ "SECRET_KEY_BASE_DUMMY" => "1" }).warning).to be_nil
     end
   end
 
   describe "#sentry?" do
     it "needs telemetry on and a SENTRY_DSN" do
-      expect(config({ "SENTRY_DSN" => "https://key@sentry.example/1" })).to be_sentry
-      expect(config({ "SENTRY_DSN" => "" })).not_to be_sentry
-      expect(config({ "SENTRY_DSN" => "https://key@sentry.example/1" }, rails_env: "development")).not_to be_sentry
+      expect(config(named.merge("SENTRY_DSN" => "https://key@sentry.example/1"))).to be_sentry
+      expect(config(named.merge("SENTRY_DSN" => ""))).not_to be_sentry
+      expect(config(named.merge("SENTRY_DSN" => "https://key@sentry.example/1"), rails_env: "development")).not_to be_sentry
+      expect(config({ "SENTRY_DSN" => "https://key@sentry.example/1" })).not_to be_sentry
     end
   end
 

@@ -5,7 +5,7 @@ module JtTelemetry
   class Railtie < Rails::Railtie
     initializer "jt_telemetry.sentry" do
       config = JtTelemetry.config
-      config.validate!
+      Rails.logger.warn(config.warning) if config.warning
       next unless config.sentry?
 
       Sentry.init do |sentry|

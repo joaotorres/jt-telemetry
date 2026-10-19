@@ -14,18 +14,20 @@ module JtTelemetry
       @rails_env = rails_env.to_s
     end
 
+    # Never stops a boot. Off without APP_NAME (see #warning), and always off
+    # under SECRET_KEY_BASE_DUMMY, which only build steps such as
+    # assets:precompile set, so they need no telemetry ENV.
     def enabled?
-      value = present("TELEMETRY_ENABLED")
-      value ? %w[1 true yes].include?(value.downcase) : @rails_env == "production"
+      requested? && !app_name.nil?
     end
 
-    # Raises at boot when telemetry is on, so a deploy missing APP_NAME fails loudly.
-    def validate!
-      app_name if enabled?
+    # For the boot log, when telemetry was asked for but is off.
+    def warning
+      "jt_telemetry: APP_NAME is not set, so telemetry is off" if requested? && app_name.nil?
     end
 
     def app_name
-      present("APP_NAME") or raise Error, "APP_NAME is required when telemetry is enabled"
+      present("APP_NAME")
     end
 
     def sentry?
@@ -62,6 +64,13 @@ module JtTelemetry
     end
 
     private
+
+    def requested?
+      return false if present("SECRET_KEY_BASE_DUMMY")
+
+      value = present("TELEMETRY_ENABLED")
+      value ? %w[1 true yes].include?(value.downcase) : @rails_env == "production"
+    end
 
     def present(name)
       value = @env[name].to_s.strip

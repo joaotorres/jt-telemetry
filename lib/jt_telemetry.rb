@@ -7,8 +7,6 @@ require_relative "jt_telemetry/helper"
 require_relative "jt_telemetry/railtie" if defined?(Rails::Railtie)
 
 module JtTelemetry
-  class Error < StandardError; end
-
   def self.config
     @config ||= Config.new
   end

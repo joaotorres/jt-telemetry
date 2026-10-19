@@ -51,6 +51,12 @@ RSpec.describe JtTelemetry::Helper do
     expect(render_with({ "APP_NAME" => "onset" })).to start_with("<script>")
   end
 
+  it "renders only the no-op jtTrack in production without APP_NAME" do
+    html = render_with({}, rails_env: "production")
+    expect(html).to include("window.jtTrack")
+    expect(html).not_to include("posthog.init")
+  end
+
   it "renders only the no-op jtTrack when telemetry is disabled" do
     html = render_with({}, rails_env: "development")
     expect(html).to include("window.jtTrack")
