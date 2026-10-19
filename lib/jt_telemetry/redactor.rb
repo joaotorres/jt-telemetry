@@ -3,6 +3,7 @@ module JtTelemetry
   # still sends the request URL and the path in span data, so a secret in a
   # path, such as the token in /phone/:token, reaches Sentry. Each declared
   # path's :segments are replaced by their names wherever a URL can appear.
+  # The same patterns go to the PostHog snippet (Tags).
   class Redactor
     SEGMENT = /(:\w+)/
     # A segment ends at the next slash, query, fragment, whitespace or quote.
@@ -28,6 +29,12 @@ module JtTelemetry
       event.exception&.values&.each { |exception| exception.value = redact(exception.value) } if event.respond_to?(:exception)
       event.spans = redact(event.spans) if event.respond_to?(:spans=)
       event
+    end
+
+    # [pattern source, replacement] pairs for the PostHog snippet. The sources
+    # use only escapes that mean the same in a JavaScript RegExp.
+    def sources
+      @patterns.map { |pattern, path| [pattern.source, path] }
     end
 
     def redact(value)

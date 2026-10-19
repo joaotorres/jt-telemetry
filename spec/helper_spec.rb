@@ -64,6 +64,17 @@ RSpec.describe JtTelemetry::Helper do
     expect(html).not_to include("array.js")
   end
 
+  it "passes no redaction to PostHog without declared paths" do
+    expect(render_with({ "APP_NAME" => "onset" })).not_to include("maskCapturedNetworkRequestFn")
+  end
+
+  it "passes the declared paths to PostHog's before_send and replay" do
+    allow(JtTelemetry).to receive(:redact_paths).and_return(["/invite/:token"])
+    html = render_with({ "APP_NAME" => "done" })
+    expect(html).to include("before_send", "maskCapturedNetworkRequestFn")
+    expect(html).to include(%([["/invite/[^/?#\\\\s\\"']+","/invite/:token"]]))
+  end
+
   it "keeps ENV values from closing the script tag" do
     html = render_with({ "APP_NAME" => "</script><script>alert(1)" })
     expect(html.scan("</script>").size).to eq(1)

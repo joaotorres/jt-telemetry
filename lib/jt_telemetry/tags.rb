@@ -21,13 +21,46 @@ module JtTelemetry
       };
     JS
 
-    def initialize(config)
+    # The declared paths' :segments replaced by their names in every string of
+    # an event's properties, $set and $set_once ($current_url, $pathname,
+    # $referrer, $initial_current_url and replay's $snapshot_data among them),
+    # and in the URLs replay records: the page's and each network request's
+    # (https://posthog.com/docs/session-replay/privacy). Only plain objects and
+    # arrays are walked, so compressed replay data is left as it is.
+    REDACT = <<~'JS'.strip
+      function (sources) {
+        var patterns = sources.map(function (s) { return [new RegExp(s[0], "g"), s[1]]; });
+        function redact(value) {
+          if (typeof value === "string") return patterns.reduce(function (v, p) { return v.replace(p[0], function () { return p[1]; }); }, value);
+          if (Array.isArray(value)) return value.map(redact);
+          if (Object.prototype.toString.call(value) !== "[object Object]") return value;
+          var copy = {};
+          for (var key in value) if (Object.prototype.hasOwnProperty.call(value, key)) copy[key] = redact(value[key]);
+          return copy;
+        }
+        return {
+          before_send: function (event) {
+            if (event) ["properties", "$set", "$set_once"].forEach(function (key) { if (event[key]) event[key] = redact(event[key]); });
+            return event;
+          },
+          session_recording: {
+            maskCapturedNetworkRequestFn: function (request) {
+              if (request.name) request.name = redact(request.name);
+              return request;
+            }
+          }
+        };
+      }
+    JS
+
+    def initialize(config, redact_paths: [])
       @config = config
+      @redactor = Redactor.new(redact_paths)
     end
 
     def render(nonce: nil)
       body = [TRACK]
-      body.push(POSTHOG_SNIPPET, "posthog.init(#{json(@config.posthog_key)}, #{json(posthog_options)});", "posthog.register(#{json(app: @config.app_name)});") if @config.enabled?
+      body.push(POSTHOG_SNIPPET, "posthog.init(#{json(@config.posthog_key)}, #{init_options});", "posthog.register(#{json(app: @config.app_name)});") if @config.enabled?
       nonce_attribute = %( nonce="#{ERB::Util.html_escape(nonce)}") if nonce
       %(<script#{nonce_attribute}>(function () {\n#{body.join("\n")}\n})();</script>)
     end
@@ -45,6 +78,13 @@ module JtTelemetry
     end
 
     private
+
+    def init_options
+      sources = @redactor.sources
+      return json(posthog_options) if sources.empty?
+
+      "Object.assign(#{json(posthog_options)}, (#{REDACT})(#{json(sources)}))"
+    end
 
     def json(value)
       JSON.generate(value).gsub("<", "\\u003c")

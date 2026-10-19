@@ -46,10 +46,12 @@ Sentry also gets `environment` from `Rails.env`, `release` from
 
 ## Secrets in paths
 
-`send_default_pii = false` does not keep a path out of Sentry: the request URL,
+A path that holds a secret, such as a token, reaches both services as it is.
+In Sentry, `send_default_pii = false` does not keep it out: the request URL,
 the path in span data and, before a controller runs, the transaction name all
-carry it. An app whose paths hold a secret, such as a token, declares those
-paths in `config/application.rb`:
+carry it. In PostHog, every event carries the page URL in several properties
+and session replay records it along with each network request. An app
+declares those paths in `config/application.rb`:
 
 ```ruby
 config.jt_telemetry.redact_paths = ["/phone/:token"]
@@ -62,8 +64,27 @@ headers (a `Referer` from such a page), the transaction name, span
 descriptions and data, breadcrumbs, exception messages, contexts, tags and
 extra. A segment ends at the next `/`, `?`, `#`, whitespace or quote.
 
-PostHog is not covered: a page with a secret in its path should not render
-`jt_telemetry_tags` at all.
+The tag passes the same patterns to PostHog, where they run in the browser,
+so the token never leaves the device:
+
+- `before_send` replaces them in every string of an event's `properties`,
+  `$set` and `$set_once`: `$current_url`, `$pathname`, `$referrer`,
+  `$initial_current_url`, `$session_entry_url`, `$prev_pageview_pathname`,
+  the web vitals' `navigationURL` and the like, and the replay data in
+  `$snapshot`. Compressed replay data is not walked
+- `session_recording.maskCapturedNetworkRequestFn` replaces them in the URLs
+  replay records: the page's and each captured network request's
+  (https://posthog.com/docs/session-replay/privacy)
+
+A path that is not in the URL, such as an API call's, still belongs in the
+list when the page calls it: replay records the request. Text on the page is
+not covered, so a page that shows a token marks that element `ph-no-capture`.
+
+Checked against a mock PostHog backend that recorded what posthog-js 1.438
+sent from a page at `/invite/<token>` with production's replay settings:
+without the paths the token was in 40 places across `$pageview`,
+`$pageleave`, `$autocapture`, `$$heatmap`, `$web_vitals`, `$set` and
+`$snapshot`, with them in none.
 
 ## What the helper renders
 

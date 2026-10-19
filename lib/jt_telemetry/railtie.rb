@@ -6,11 +6,11 @@ module JtTelemetry
     config.jt_telemetry = ActiveSupport::OrderedOptions.new
     config.jt_telemetry.redact_paths = []
 
-    initializer "jt_telemetry.sentry" do |app|
+    initializer "jt_telemetry.sentry" do
       config = JtTelemetry.config
       # Read on each event, so paths declared in a config/initializers file,
       # which loads after this initializer, still apply.
-      redact = ->(event, hint) { Redactor.new(app.config.jt_telemetry.redact_paths).call(event, hint) }
+      redact = ->(event, hint) { Redactor.new(JtTelemetry.redact_paths).call(event, hint) }
       Rails.logger.warn(config.warning) if config.warning
       next unless config.sentry?
 
