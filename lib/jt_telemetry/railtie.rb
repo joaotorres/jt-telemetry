@@ -19,6 +19,7 @@ module JtTelemetry
         sentry.environment = Rails.env
         sentry.release = config.release if config.release
         sentry.send_default_pii = false
+        sentry.rails.register_error_subscriber = true
         sentry.traces_sampler = config.traces_sampler
         sentry.before_send = redact
         sentry.before_send_transaction = redact

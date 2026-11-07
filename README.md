@@ -43,6 +43,8 @@ is set, so `assets:precompile` in a Docker build needs none of this ENV.
 
 Sentry also gets `environment` from `Rails.env`, `release` from
 `KAMAL_VERSION` (Kamal sets it in the container) and `send_default_pii = false`.
+Errors an app hands to `Rails.error.report` or `Rails.error.handle` reach
+Sentry too (`register_error_subscriber`, off by default in `sentry-rails`).
 
 ## Secrets in paths
 
