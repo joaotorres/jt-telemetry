@@ -5,6 +5,7 @@ module JtTelemetry
   class Railtie < Rails::Railtie
     config.jt_telemetry = ActiveSupport::OrderedOptions.new
     config.jt_telemetry.redact_paths = []
+    config.jt_telemetry.automatic_pageviews = true
 
     initializer "jt_telemetry.sentry" do
       config = JtTelemetry.config

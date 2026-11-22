@@ -53,9 +53,10 @@ module JtTelemetry
       }
     JS
 
-    def initialize(config, redact_paths: [])
+    def initialize(config, redact_paths: [], automatic_pageviews: true)
       @config = config
       @redactor = Redactor.new(redact_paths)
+      @automatic_pageviews = automatic_pageviews
     end
 
     def render(nonce: nil)
@@ -72,7 +73,7 @@ module JtTelemetry
         defaults: "2026-05-30",
         persistence: "memory",
         person_profiles: "identified_only",
-        capture_pageview: "history_change",
+        capture_pageview: @automatic_pageviews ? "history_change" : false,
         capture_exceptions: true
       }
     end

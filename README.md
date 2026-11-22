@@ -108,7 +108,13 @@ PostHog settings:
 - `person_profiles: "identified_only"`
 - `capture_exceptions: true`
 - `capture_pageview: "history_change"`: Turbo Drive and client routers change
-  the URL through the History API, so each navigation is a pageview
+  the URL through the History API, so each navigation is a pageview. An app
+  whose pageviews carry page properties sends them itself instead: it sets
+  `config.jt_telemetry.automatic_pageviews = false` in
+  `config/application.rb`, which renders `capture_pageview: false`, and
+  captures exactly one `$pageview` per page once the page has loaded (on
+  `turbo:load`). The automatic one fires when the URL changes, before Turbo
+  has rendered the new page, so it cannot carry that page's properties
 - The script returns early if `window.jtTrack` already exists, so PostHog never
   initializes twice, even if Turbo evaluates the head script again
 
@@ -164,7 +170,7 @@ worker precached, so frontend code calls `window.jtTrack?.(...)`.
 
 Property names are snake_case too. `jtTrack` warns in the console when a name
 does not match, and still sends it. Pageviews are automatic, do not track
-them by hand.
+them by hand, unless the app turned them off (PostHog settings, above).
 
 ```js
 window.jtTrack("game_created", { players: 4 })

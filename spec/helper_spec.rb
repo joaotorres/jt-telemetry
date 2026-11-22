@@ -75,6 +75,13 @@ RSpec.describe JtTelemetry::Helper do
     expect(html).to include(%([["/invite/[^/?#\\\\s\\"']+","/invite/:token"]]))
   end
 
+  it "sends PostHog's automatic pageviews unless the app turns them off" do
+    allow(JtTelemetry).to receive(:automatic_pageviews).and_return(false)
+    html = render_with({ "APP_NAME" => "dishapp" })
+    expect(html).to include(%("capture_pageview":false))
+    expect(html).not_to include("history_change")
+  end
+
   it "keeps ENV values from closing the script tag" do
     html = render_with({ "APP_NAME" => "</script><script>alert(1)" })
     expect(html.scan("</script>").size).to eq(1)

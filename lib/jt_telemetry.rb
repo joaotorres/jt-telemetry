@@ -17,9 +17,14 @@ module JtTelemetry
     defined?(Rails.application) && Rails.application ? Rails.application.config.jt_telemetry.redact_paths : []
   end
 
+  # config.jt_telemetry.automatic_pageviews, or true outside a Rails app.
+  def self.automatic_pageviews
+    defined?(Rails.application) && Rails.application ? Rails.application.config.jt_telemetry.automatic_pageviews != false : true
+  end
+
   # The <script> tag for the <head>, as a plain string. Layouts call
   # Helper#jt_telemetry_tags instead; this is for apps that serve static HTML.
-  def self.tags(nonce: nil, config: self.config, redact_paths: self.redact_paths)
-    Tags.new(config, redact_paths:).render(nonce:)
+  def self.tags(nonce: nil, config: self.config, redact_paths: self.redact_paths, automatic_pageviews: self.automatic_pageviews)
+    Tags.new(config, redact_paths:, automatic_pageviews:).render(nonce:)
   end
 end
