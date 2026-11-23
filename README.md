@@ -115,6 +115,12 @@ PostHog settings:
   captures exactly one `$pageview` per page once the page has loaded (on
   `turbo:load`). The automatic one fires when the URL changes, before Turbo
   has rendered the new page, so it cannot carry that page's properties
+- Feature flags: PostHog requests them as soon as it starts, and the request
+  carries the page URL. An app whose URLs can identify a user and that uses
+  no flags sets `config.jt_telemetry.feature_flags = false` in
+  `config/application.rb`, which renders `advanced_disable_flags: true`, so
+  the request is never sent. Setting it later with `posthog.set_config` can
+  lose the race with that first request
 - The script returns early if `window.jtTrack` already exists, so PostHog never
   initializes twice, even if Turbo evaluates the head script again
 

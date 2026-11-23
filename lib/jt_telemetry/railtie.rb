@@ -6,6 +6,7 @@ module JtTelemetry
     config.jt_telemetry = ActiveSupport::OrderedOptions.new
     config.jt_telemetry.redact_paths = []
     config.jt_telemetry.automatic_pageviews = true
+    config.jt_telemetry.feature_flags = true
 
     initializer "jt_telemetry.sentry" do
       config = JtTelemetry.config

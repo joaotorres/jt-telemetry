@@ -53,10 +53,11 @@ module JtTelemetry
       }
     JS
 
-    def initialize(config, redact_paths: [], automatic_pageviews: true)
+    def initialize(config, redact_paths: [], automatic_pageviews: true, feature_flags: true)
       @config = config
       @redactor = Redactor.new(redact_paths)
       @automatic_pageviews = automatic_pageviews
+      @feature_flags = feature_flags
     end
 
     def render(nonce: nil)
@@ -67,7 +68,7 @@ module JtTelemetry
     end
 
     def posthog_options
-      {
+      options = {
         api_host: @config.posthog_host,
         ui_host: @config.posthog_ui_host,
         defaults: "2026-05-30",
@@ -76,6 +77,8 @@ module JtTelemetry
         capture_pageview: @automatic_pageviews ? "history_change" : false,
         capture_exceptions: true
       }
+      options[:advanced_disable_flags] = true unless @feature_flags
+      options
     end
 
     private

@@ -33,6 +33,7 @@ RSpec.describe JtTelemetry::Helper do
       expect(html).to include(%("capture_pageview":"history_change"))
       expect(html).to include(%("capture_exceptions":true))
       expect(html).not_to include("cookieless_mode")
+      expect(html).not_to include("advanced_disable_flags")
     end
 
     it "registers the app super property right after init" do
@@ -80,6 +81,12 @@ RSpec.describe JtTelemetry::Helper do
     html = render_with({ "APP_NAME" => "dishapp" })
     expect(html).to include(%("capture_pageview":false))
     expect(html).not_to include("history_change")
+  end
+
+  it "requests PostHog's feature flags unless the app turns them off" do
+    allow(JtTelemetry).to receive(:feature_flags).and_return(false)
+    html = render_with({ "APP_NAME" => "dishapp" })
+    expect(html).to include(%("advanced_disable_flags":true))
   end
 
   it "keeps ENV values from closing the script tag" do
